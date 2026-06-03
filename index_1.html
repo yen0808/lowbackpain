@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>腰椎壓力即時模擬器</title>
+<style>
+  :root{
+    --ink:#1f2a24; --muted:#6e7e75; --line:#aab4ad; --surface:#f1f4f1; --border:#dfe6e1;
+    --safe:#2E8B57; --danger:#E08A1E; --fail:#C0392B; --green:#14674A;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:#ffffff;color:var(--ink);
+    font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC","Heiti TC",system-ui,sans-serif;}
+  .wrap{max-width:1000px;margin:0 auto;padding:28px 24px 40px;}
+  .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  h1{font-size:26px;font-weight:700;margin:0;color:var(--green);}
+  .sub{font-size:14px;color:var(--muted);margin:4px 0 0;}
+  .fsbtn{border:1px solid var(--border);background:#fff;color:var(--ink);font-size:14px;
+    padding:8px 14px;border-radius:8px;cursor:pointer;white-space:nowrap;font-family:inherit;}
+  .fsbtn:hover{background:var(--surface);}
+  svg text{font-family:inherit;}
+  .panel{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;}
+  .card{background:var(--surface);border-radius:14px;padding:16px 18px;}
+  .lbl{font-size:14px;color:var(--muted);}
+  .big{font-size:46px;font-weight:700;line-height:1;}
+  .unit{font-size:18px;color:var(--muted);}
+  .badge{display:inline-block;font-size:14px;padding:4px 12px;border-radius:14px;vertical-align:middle;margin-left:10px;}
+  .sub2{font-size:13px;color:var(--muted);margin-top:6px;}
+  .stat{font-size:15px;color:var(--muted);line-height:2.1;}
+  .stat b{color:var(--ink);font-weight:700;}
+  .meterwrap{position:relative;margin-top:20px;}
+  .track{height:20px;border-radius:10px;overflow:hidden;display:flex;}
+  .needle{position:absolute;top:-5px;height:30px;width:4px;background:var(--ink);border-radius:2px;transform:translateX(-50%);}
+  .ticks{position:relative;height:18px;font-size:12px;color:var(--muted);margin-top:4px;}
+  .ticks span{position:absolute;white-space:nowrap;}
+  .warn{display:none;align-items:center;gap:10px;margin-top:14px;padding:12px 14px;border-radius:10px;
+    background:#fbecea;color:#8a2417;font-size:15px;line-height:1.5;}
+  .ctrl{margin-top:16px;}
+  .ctrlhead{display:flex;justify-content:space-between;font-size:15px;color:var(--muted);margin-bottom:6px;}
+  .ctrlhead b{color:var(--ink);font-weight:700;}
+  input[type=range]{width:100%;height:26px;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:20px;}
+  .pbtn{border:1px solid var(--border);background:#fff;color:var(--ink);font-size:15px;
+    padding:9px 16px;border-radius:9px;cursor:pointer;font-family:inherit;}
+  .pbtn:hover{background:var(--surface);}
+  .chk{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--muted);cursor:pointer;margin-left:auto;}
+  .chk input{width:17px;height:17px;}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;font-size:13px;color:var(--muted);}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:middle;margin-right:6px;}
+  .foot{margin-top:22px;padding-top:16px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);line-height:1.75;}
+  .foot code{font-family:"Consolas",monospace;background:var(--surface);padding:1px 6px;border-radius:5px;color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>腰椎壓力即時模擬器</h1>
+      <p class="sub">拖動拉桿調整姿勢與重物，看椎間盤（L5/S1）承受的壓迫力即時變化　・　照護人員腰部職業傷害衛教</p>
+    </div>
+    <button class="fsbtn" id="fsbtn">⛶ 全螢幕</button>
+  </div>
+
+  <svg width="100%" viewBox="0 0 680 320" style="max-width:760px;display:block;margin:6px auto 0;" role="img" aria-label="腰椎受力示意">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+    <line x1="70" y1="270" x2="360" y2="270" stroke="#9aa39c" stroke-width="1" opacity="0.5"/>
+
+    <g id="sideG">
+      <line x1="170" y1="235" x2="152" y2="270" stroke="#2f3a33" stroke-width="3" stroke-linecap="round"/>
+      <line x1="170" y1="235" x2="188" y2="270" stroke="#2f3a33" stroke-width="3" stroke-linecap="round"/>
+      <line id="arm" x1="217" y1="153" x2="235" y2="232" stroke="#2f3a33" stroke-width="2.5" stroke-linecap="round" opacity="0.65"/>
+      <line id="trunk" x1="170" y1="235" x2="217" y2="153" stroke="#2f3a33" stroke-width="4" stroke-linecap="round"/>
+      <circle id="head" cx="224" cy="141" r="13" fill="none" stroke="#2f3a33" stroke-width="3"/>
+      <ellipse id="disc0" cx="170" cy="235" rx="9" ry="5.5" fill="#2E8B57"/>
+      <rect id="loadbox" x="222" y="221" width="26" height="22" rx="3" fill="#185FA5" opacity="0.85"/>
+      <line id="loadarr" x1="235" y1="246" x2="235" y2="266" stroke="#0C447C" stroke-width="2.5" marker-end="url(#ar)"/>
+      <line id="cdim" x1="170" y1="288" x2="235" y2="288" stroke="#9aa39c" stroke-width="1" marker-start="url(#ar)" marker-end="url(#ar)"/>
+      <text id="cdimlbl" x="202" y="305" text-anchor="middle" font-size="13" fill="#6e7e75">c = 0.25 m</text>
+      <text x="170" y="253" text-anchor="middle" font-size="13" fill="#6e7e75" opacity="0.8">L5/S1</text>
+    </g>
+
+    <g id="frontG" style="display:none">
+      <line x1="175" y1="215" x2="175" y2="138" stroke="#9aa39c" stroke-width="1" stroke-dasharray="3 3" opacity="0.55"/>
+      <line x1="175" y1="215" x2="160" y2="270" stroke="#2f3a33" stroke-width="3" stroke-linecap="round"/>
+      <line x1="175" y1="215" x2="190" y2="270" stroke="#2f3a33" stroke-width="3" stroke-linecap="round"/>
+      <line id="fBalArm" x1="208" y1="143" x2="140" y2="196" stroke="#2f3a33" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+      <line id="fLoadArm" x1="208" y1="143" x2="240" y2="224" stroke="#2f3a33" stroke-width="2.5" stroke-linecap="round"/>
+      <line id="fTrunk" x1="175" y1="215" x2="208" y2="143" stroke="#2f3a33" stroke-width="4" stroke-linecap="round"/>
+      <circle id="fHead" cx="214" cy="130" r="14" fill="none" stroke="#2f3a33" stroke-width="3"/>
+      <ellipse id="fDisc" cx="175" cy="212" rx="9" ry="5.5" fill="#C0392B"/>
+      <path id="fTwist" d="M150 200 A 27 17 0 1 1 176 183" fill="none" stroke="#C0392B" stroke-width="3" stroke-linecap="round" marker-end="url(#ar)"/>
+      <text x="118" y="176" text-anchor="end" font-size="13" fill="#6e7e75">旋轉扭力</text>
+      <rect id="fBox" x="227" y="221" width="26" height="22" rx="3" fill="#185FA5" opacity="0.85"/>
+      <line id="fBoxArr" x1="240" y1="243" x2="240" y2="262" stroke="#0C447C" stroke-width="2.5" marker-end="url(#ar)"/>
+      <line id="fCdim" x1="175" y1="285" x2="240" y2="285" stroke="#9aa39c" stroke-width="1" marker-start="url(#ar)" marker-end="url(#ar)"/>
+      <text id="fCdimLbl" x="207" y="301" text-anchor="middle" font-size="13" fill="#6e7e75">離身體 0.25 m</text>
+      <text x="175" y="232" text-anchor="middle" font-size="13" fill="#6e7e75" opacity="0.8">L5/S1</text>
+    </g>
+
+    <text x="500" y="96" text-anchor="middle" font-size="13" fill="#6e7e75">椎間盤受壓示意</text>
+    <rect id="vtop" x="455" y="152" width="90" height="30" rx="8" fill="#eef1ee" stroke="#9aa39c" stroke-width="0.6"/>
+    <rect id="disc" x="455" y="182" width="90" height="18" rx="6" fill="#2E8B57"/>
+    <rect x="455" y="200" width="90" height="30" rx="8" fill="#eef1ee" stroke="#9aa39c" stroke-width="0.6"/>
+    <text x="500" y="250" text-anchor="middle" font-size="13" fill="#6e7e75">L5/S1 椎間盤</text>
+    <line id="ca1" x1="475" y1="113" x2="475" y2="147" stroke="#2E8B57" stroke-width="2" marker-end="url(#ar)"/>
+    <line id="ca2" x1="500" y1="113" x2="500" y2="147" stroke="#2E8B57" stroke-width="2" marker-end="url(#ar)"/>
+    <line id="ca3" x1="525" y1="113" x2="525" y2="147" stroke="#2E8B57" stroke-width="2" marker-end="url(#ar)"/>
+  </svg>
+
+  <div class="panel">
+    <div class="card" style="flex:1.4;min-width:280px;">
+      <div class="lbl">椎間盤壓迫力 F<sub>c</sub></div>
+      <div style="margin:6px 0 4px;">
+        <span class="big" id="fcVal">274</span><span class="unit"> kgf</span>
+        <span class="badge" id="badge">安全</span>
+      </div>
+      <div class="sub2"><span id="fcN">2,688</span> N　・　約 <span id="people">4</span> 個成年人壓在腰上</div>
+    </div>
+    <div class="card" style="flex:1;min-width:220px;">
+      <div class="stat">
+        <div>肌肉張力 F<sub>m</sub>：<b id="fmVal">223</b> kgf</div>
+        <div>椎間盤剪力：<b id="shearVal">29</b> kgf</div>
+        <div>上半身重 W<sub>b</sub>：<b id="wbVal">39</b> kgf</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="meterwrap">
+    <div class="track">
+      <div style="width:38.5%;background:#6FBF8E;"></div>
+      <div style="width:34%;background:#EBB35A;"></div>
+      <div style="width:27.5%;background:#DB8077;"></div>
+    </div>
+    <div class="needle" id="needle" style="left:30%;"></div>
+  </div>
+  <div class="ticks">
+    <span style="left:0;">0</span>
+    <span style="left:38.5%;transform:translateX(-50%);">3,400 N 安全上限</span>
+    <span style="left:72.5%;transform:translateX(-50%);">6,400 N 容許上限</span>
+    <span style="right:0;">≈ 8,800 N</span>
+  </div>
+
+  <div class="warn" id="warn">
+    <svg width="22" height="22" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M12 3 L22 20 H2 Z" fill="none" stroke="#C0392B" stroke-width="2" stroke-linejoin="round"/><line x1="12" y1="9" x2="12" y2="14" stroke="#C0392B" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="#C0392B"/></svg>
+    <span>單手＝額外側彎＋旋轉扭力。椎間盤纖維環抗扭差，破壞門檻會明顯下降，實際風險高於這個壓迫數值。</span>
+  </div>
+
+  <div class="ctrl">
+    <div class="ctrlhead"><span>軀幹前彎角度（0° 站直 → 90° 水平）</span><b id="v-theta">30°</b></div>
+    <input id="s-theta" type="range" min="0" max="90" step="5" value="30">
+  </div>
+  <div class="ctrl">
+    <div class="ctrlhead"><span>重物重量</span><b id="v-load">20 kg</b></div>
+    <input id="s-load" type="range" min="0" max="40" step="1" value="20">
+  </div>
+  <div class="ctrl">
+    <div class="ctrlhead"><span>重物離身體水平距離（力臂）</span><b id="v-dist">0.25 m</b></div>
+    <input id="s-dist" type="range" min="0.1" max="0.6" step="0.05" value="0.25">
+  </div>
+  <div class="ctrl">
+    <div class="ctrlhead"><span>照護員體重</span><b id="v-bw">70 kg</b></div>
+    <input id="s-bw" type="range" min="50" max="100" step="1" value="70">
+  </div>
+
+  <div class="row">
+    <button class="pbtn" id="p1">正確深蹲</button>
+    <button class="pbtn" id="p2">直膝彎腰</button>
+    <button class="pbtn" id="p3">單手側舉</button>
+    <label class="chk"><input id="asym" type="checkbox">單手（非對稱受力）</label>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:#6FBF8E;"></i>安全（&lt; 3,400 N）</span>
+    <span><i style="background:#EBB35A;"></i>危險</span>
+    <span><i style="background:#DB8077;"></i>破壞風險（&gt; 6,400 N）</span>
+  </div>
+
+  <div class="foot">
+    計算式（靜態估算）：<code>F_m = (W_b·sinθ·0.32 + W_L·c) ÷ 0.05</code>　、　<code>F_c = F_m + (W_b + W_L)·cosθ</code>；上半身重 W_b 取體重的 0.55。<br>
+    單手側舉以正面視角呈現側傾、單手提重與腰部旋轉；其壓迫數值為矢狀面估算，實際風險因額外的旋轉扭力而更高。燈號門檻對齊 NIOSH 搬運標準（行動上限 3,400 N、最大容許 6,400 N）。重點看「相對變化」與「跨進哪個區」，而非絕對公斤數。
+  </div>
+</div>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var E={theta:$('s-theta'),load:$('s-load'),dist:$('s-dist'),bw:$('s-bw'),
+    tV:$('v-theta'),lV:$('v-load'),dV:$('v-dist'),bV:$('v-bw'),
+    fc:$('fcVal'),fcN:$('fcN'),ppl:$('people'),fm:$('fmVal'),shear:$('shearVal'),wb:$('wbVal'),
+    badge:$('badge'),needle:$('needle'),warn:$('warn'),asym:$('asym'),
+    sideG:$('sideG'),frontG:$('frontG'),
+    trunk:$('trunk'),head:$('head'),arm:$('arm'),disc0:$('disc0'),loadbox:$('loadbox'),loadarr:$('loadarr'),cdim:$('cdim'),cdimlbl:$('cdimlbl'),
+    fTrunk:$('fTrunk'),fHead:$('fHead'),fBalArm:$('fBalArm'),fLoadArm:$('fLoadArm'),fBox:$('fBox'),fBoxArr:$('fBoxArr'),fDisc:$('fDisc'),fTwist:$('fTwist'),fCdim:$('fCdim'),fCdimLbl:$('fCdimLbl'),
+    disc:$('disc'),vtop:$('vtop'),ca1:$('ca1'),ca2:$('ca2'),ca3:$('ca3')};
+  var AL=346.6, MPL=652.4, SCALE=900;
+  function zone(fc){ if(fc<AL)return{n:'安全',c:'#2E8B57',bg:'#e3f1e9',tx:'#1d6b41'};
+    if(fc<MPL)return{n:'危險',c:'#E08A1E',bg:'#fbf0dd',tx:'#8a5610'};
+    return{n:'破壞風險',c:'#C0392B',bg:'#fbe6e3',tx:'#8a2417'}; }
+  function update(){
+    var th=+E.theta.value, WL=+E.load.value, c=+E.dist.value, BW=+E.bw.value;
+    var Wb=0.55*BW, rad=th*Math.PI/180, db=0.32;
+    var b=db*Math.sin(rad);
+    var Fm=(Wb*b+WL*c)/0.05;
+    var axial=(Wb+WL)*Math.cos(rad);
+    var Fc=Fm+axial;
+    var shear=(Wb+WL)*Math.sin(rad);
+    var z=zone(Fc);
+    E.tV.textContent=th+'°'; E.lV.textContent=WL+' kg'; E.dV.textContent=c.toFixed(2)+' m'; E.bV.textContent=BW+' kg';
+    E.fc.textContent=Math.round(Fc); E.fc.style.color=z.c;
+    E.fcN.textContent=Math.round(Fc*9.81).toLocaleString();
+    E.ppl.textContent=Math.max(1,Math.round(Fc/70));
+    E.fm.textContent=Math.round(Fm); E.shear.textContent=Math.round(shear); E.wb.textContent=Math.round(Wb);
+    E.badge.textContent=z.n; E.badge.style.background=z.bg; E.badge.style.color=z.tx;
+    E.needle.style.left=Math.min(100,Math.max(0,Fc/SCALE*100))+'%';
+    E.warn.style.display=E.asym.checked?'flex':'none';
+    if(E.asym.checked){
+      E.sideG.style.display='none'; E.frontG.style.display='';
+      var phi=Math.min(35,10+th*0.35)*Math.PI/180;
+      var hx=175, hy=215, H=78;
+      var shx=hx+H*Math.sin(phi), shy=hy-H*Math.cos(phi);
+      E.fTrunk.setAttribute('x1',hx);E.fTrunk.setAttribute('y1',hy);E.fTrunk.setAttribute('x2',shx);E.fTrunk.setAttribute('y2',shy);
+      E.fHead.setAttribute('cx',shx+14*Math.sin(phi));E.fHead.setAttribute('cy',shy-14*Math.cos(phi));
+      E.fBalArm.setAttribute('x1',shx);E.fBalArm.setAttribute('y1',shy);
+      var bx=hx+45+(c-0.1)*180, by=232;
+      E.fBox.setAttribute('x',bx-13);
+      E.fLoadArm.setAttribute('x1',shx);E.fLoadArm.setAttribute('y1',shy);E.fLoadArm.setAttribute('x2',bx);E.fLoadArm.setAttribute('y2',by-8);
+      E.fBoxArr.setAttribute('x1',bx);E.fBoxArr.setAttribute('x2',bx);
+      E.fDisc.setAttribute('fill',z.c);
+      E.fTwist.setAttribute('stroke',z.c);
+      E.fCdim.setAttribute('x2',bx);E.fCdimLbl.setAttribute('x',(hx+bx)/2);E.fCdimLbl.textContent='離身體 '+c.toFixed(2)+' m';
+    } else {
+      E.sideG.style.display=''; E.frontG.style.display='none';
+      var px=170, py=235, L=95;
+      var sx=px+L*Math.sin(rad), sy=py-L*Math.cos(rad);
+      E.trunk.setAttribute('x2',sx);E.trunk.setAttribute('y2',sy);
+      E.head.setAttribute('cx',sx+13*Math.sin(rad));E.head.setAttribute('cy',sy-13*Math.cos(rad));
+      var lx=Math.min(px+c*260,344);
+      E.loadbox.setAttribute('x',lx-13);
+      E.arm.setAttribute('x1',sx);E.arm.setAttribute('y1',sy);E.arm.setAttribute('x2',lx);E.arm.setAttribute('y2',232);
+      E.loadarr.setAttribute('x1',lx);E.loadarr.setAttribute('x2',lx);
+      E.disc0.setAttribute('fill',z.c);
+      E.cdim.setAttribute('x2',lx);E.cdimlbl.setAttribute('x',(px+lx)/2);E.cdimlbl.textContent='c = '+c.toFixed(2)+' m';
+    }
+    var f=Math.min(Fc,SCALE)/SCALE;
+    var dh=18-f*10, dy=200-dh, rx=6+f*6, vty=dy-30, aw=2+f*5;
+    E.disc.setAttribute('y',dy);E.disc.setAttribute('height',dh);E.disc.setAttribute('rx',rx);E.disc.setAttribute('fill',z.c);
+    E.vtop.setAttribute('y',vty);
+    [E.ca1,E.ca2,E.ca3].forEach(function(a){a.setAttribute('stroke',z.c);a.setAttribute('stroke-width',aw);a.setAttribute('y1',vty-39);a.setAttribute('y2',vty-5);});
+  }
+  ['theta','load','dist','bw'].forEach(function(k){E[k].addEventListener('input',update);});
+  E.asym.addEventListener('change',update);
+  function preset(t,wl,c,bw,a){E.theta.value=t;E.load.value=wl;E.dist.value=c;E.bw.value=bw;E.asym.checked=a;update();}
+  $('p1').onclick=function(){preset(25,20,0.18,70,false);};
+  $('p2').onclick=function(){preset(80,20,0.50,70,false);};
+  $('p3').onclick=function(){preset(70,20,0.45,70,true);};
+  $('fsbtn').onclick=function(){ if(!document.fullscreenElement){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();} else {document.exitFullscreen&&document.exitFullscreen();} };
+  update();
+})();
+</script>
+</body>
+</html>
